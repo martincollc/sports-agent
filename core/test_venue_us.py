@@ -295,5 +295,31 @@ class Scan(unittest.TestCase):
             self.assertIsNone(scan.keep(btc, set(), [], args))
 
 
+class Games(unittest.TestCase):
+    def test_league_tag_paging_filters_start_and_type(self):
+        import datetime as dt
+        now = dt.datetime.now(dt.timezone.utc)
+        z = lambda h: (now + dt.timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
+        rows = [
+            us_market(slug="aec-nfl-a-b-1", sportsMarketType="football_team_full_game_winner", gameStartTime=z(5)),
+            us_market(slug="aec-nfl-a-b-2", sportsMarketType="football_game_first_touchdown", gameStartTime=z(5)),
+            us_market(slug="aec-nfl-a-b-3", sportsMarketType="football_team_full_game_winner", gameStartTime=z(200)),
+            us_market(slug="tec-nfl-champ", sportsMarketType="futures", gameStartTime=None),
+        ]
+        calls = []
+
+        def gw(path, params=None, retries=3):
+            calls.append(dict(params))
+            return {"markets": rows if params["offset"] == 0 else []}
+        with mock.patch.object(venue_us, "get_json", gw):
+            got = venue_us.markets(_us_games={"leagues": ["nfl", "zzz"], "hours": 72,
+                                              "types": "full_game_winner$"},
+                                   end_date_min=z(0), limit=100, offset=0)
+            self.assertEqual([m["slug"] for m in got], ["aec-nfl-a-b-1"])
+            self.assertEqual(calls[0]["tagIds"], 1)
+            self.assertGreater(calls[0]["endDateMax"], z(72 + 24 * 15))
+            self.assertEqual(venue_us.markets(_us_games={"leagues": ["nfl"]}, offset=100), [])
+
+
 if __name__ == "__main__":
     unittest.main()

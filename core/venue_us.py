@@ -266,8 +266,87 @@ def translate_params(params):
     return out, dropped
 
 
+# League tag ids from GET /v1/sports (checked 2026-10-15 on the operator Mac).
+# `tagIds` is the one server-side sports filter that works: `sportsMarketTypes`
+# returns nothing for game markets, and sort orders are ignored.
+LEAGUE_TAGS = {
+    "nfl": 1, "cfb": 6, "nba": 5, "cbb": 8, "wnba": 94, "wcbb": 28, "mlb": 4,
+    "kbo": 543, "npb": 544, "nhl": 7, "ahl": 1454, "khl": 1357, "shl": 1463,
+    "liiga": 1551, "del": 1456, "epl": 17, "ucl": 18, "uel": 684, "uecl": 685,
+    "lal": 27, "bun": 25, "sea": 26, "lg1": 951, "mls": 10, "lmx": 666,
+    "bra": 667, "eflch": 981, "efl1": 1480, "efl2": 1481, "bun2": 1473,
+    "lal2": 983, "ita2": 1500, "fra2": 1418, "lig2": 952, "ere": 1282,
+    "ligpor": 968, "j1": 1470, "j2": 1471, "kl1": 669, "csl": 671, "spl": 980,
+    "tsl": 982, "bel1": 1475, "par1": 1472, "lib": 953, "sud": 686, "arg2": 767,
+    "nwsl": 689, "uslc": 752, "dfb": 984, "cdb": 825, "eurolg": 1359,
+    "eurocup": 1536, "acb": 614, "lba": 1388, "bsl": 1386, "vtb": 1382,
+    "nbl": 1341, "cba": 1495, "kbl": 1537, "ufc": 9, "boxing": 418, "pfl": 1637,
+    "one": 1542, "atp": 23, "wta": 24, "cs2": 40, "lol": 41, "valorant": 257,
+    "dota2": 258, "r6": 725, "cod": 42, "nrl": 1544, "prem": 1548,
+    "top14": 1549, "urc": 1547, "superleague": 1546,
+    # sports agent extras
+    "irlp": 758, "lng": 681, "ncaaws": 1327, "ncaams": 1326,
+}
+
+
+def games(tags, types=None, start_min=None, start_max=None, end_pad_days=16,
+          max_pages=40, page=500):
+    """Game markets for the given league tags, starting in [start_min,
+    start_max] (ISO Z strings). A game market's endDate sits ~14 days after
+    kickoff, so the server-side window is endDate in [start_min, start_max +
+    end_pad_days]; gameStartTime and the market type are then filtered here.
+    `types` is a regex on sportsMarketType (None = any non-future)."""
+    import datetime as _dt
+    import re as _re
+    rx = _re.compile(types) if types else None
+    hi = _dt.datetime.strptime(start_max, "%Y-%m-%dT%H:%M:%SZ") + _dt.timedelta(days=end_pad_days)
+    out, seen = [], set()
+    for tag in tags:
+        for p in range(max_pages):
+            body = get_json("/v1/markets", {
+                "active": True, "closed": False, "categories": "sports",
+                "tagIds": tag, "endDateMin": start_min,
+                "endDateMax": hi.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "limit": page, "offset": p * page})
+            rows = body.get("markets", []) if isinstance(body, dict) else []
+            new = [m for m in rows if isinstance(m, dict) and m.get("slug") not in seen]
+            if not new:
+                break
+            for m in new:
+                seen.add(m["slug"])
+                t = (m.get("sportsMarketType") or "").strip()
+                start = (m.get("gameStartTime") or "")[:19] + "Z"
+                if not t or t == "futures" or (rx and not rx.search(t)):
+                    continue
+                if not start_min <= start <= start_max:
+                    continue
+                out.append(gamma_view(m))
+            if len(rows) < page:
+                break
+    return out
+
+
 def markets(**params):
-    """List markets (gamma-shaped). Gamma-only keys are dropped."""
+    """List markets (gamma-shaped). Gamma-only keys are dropped.
+
+    A query carrying `_us_games` = {"leagues": [...codes], "types": regex,
+    "hours": N} is answered by games() instead: every page of those leagues
+    is read here on the first call (offset 0) and later offsets return [],
+    so core/scan.py's paging loop stops after one batch."""
+    spec = params.pop("_us_games", None)
+    if spec is not None:
+        if int(params.get("offset") or 0) > 0:
+            return []
+        import datetime as _dt
+        now = _dt.datetime.now(_dt.timezone.utc)
+        lo = params.get("end_date_min") or now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        hi = (now + _dt.timedelta(hours=float(spec.get("hours", 72)))).strftime("%Y-%m-%dT%H:%M:%SZ")
+        unknown = [c for c in spec.get("leagues", []) if c not in LEAGUE_TAGS]
+        if unknown:
+            print(f"venue_us: no tag id for leagues {unknown}", file=sys.stderr)
+        tags = [LEAGUE_TAGS[c] for c in spec.get("leagues", []) if c in LEAGUE_TAGS]
+        return games(tags, spec.get("types"), lo, hi,
+                     max_pages=int(spec.get("max_pages", 40)))
     us, dropped = translate_params(params)
     if dropped:
         print(f"venue_us: ignoring gamma-only query keys {sorted(dropped)}",

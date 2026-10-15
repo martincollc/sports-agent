@@ -4,72 +4,47 @@
 filters (banned classes, resolution floor, price bounds) to whatever comes
 back. I decide WHAT TO LOOK FOR; core decides what is allowed.
 
-Operator seed, 2026-10-15. What the Polymarket US gateway taught us that day
-(a full paged count from the operator Mac, 20,000 sports markets):
-  * `categories=sports` alone returns season futures first, and the gateway
-    ignored orderBy/endDateMin on that query, so a scan never reached a game.
-  * `sportsMarketTypes` is the filter that works. Each market's type also
-    decides its tier (core/lanes.py): tier 1 = full-game winner/spread/total,
-    tier 2 = halves/quarters/team totals, tier 3 = props, futures = forecast
-    only.
-  * One query per market type, so a type name the gateway rejects fails only
-    its own query; scan logs it on stderr and moves on. Types seen live are
-    marked; unmarked ones follow the naming pattern for sports whose games
-    were not listed that day. Read scan's stderr and prune the dead ones.
+Operator seed, revised 2026-10-15 after live probes of the Polymarket US
+gateway from the operator Mac:
+  * `sportsMarketTypes` does not filter game markets (detailed names -> 400,
+    SPORTS_MARKET_TYPE_* names -> 0 rows), and sort orders are ignored.
+  * `tagIds` (one per league, GET /v1/sports) filters reliably. Tag ids live
+    in core/venue_us.py LEAGUE_TAGS; lane membership in core/lanes.py.
+  * A game market's endDate is ~14 days after kickoff, so the window must
+    reach past the horizon. `_us_games` handles that: core/venue_us.py
+    pages every market of the listed league tags and keeps those whose
+    gameStartTime falls in the next `hours` and whose type matches `types`.
 
-Lanes only bet tier 1 until a league earns tier 2 on forecasts, so tier 1
-gets the full page budget. Tier 2 is here to build that forecast record.
-Props are not queried: there are thousands and no outside line to check
-them against. Add a prop type here when a lane has a reason to study it.
+One query per lane, so a slow or failing lane shows up on its own line in
+scan's stderr. Tier 1 (winner, spread, total) and tier 2 (halves, quarters,
+team totals, map lines) are fetched: tier 1 for bets, tier 2 to build the
+forecast record that unlocks it. Props (tier 3) are left out on purpose:
+thousands per week, nothing outside to check them against.
 
-Contract: return a list of dicts of query params (gamma-style keys are
-translated by core/venue_us.py; `sportsMarketTypes` and `categories` pass
-through). Optional `_label` names the query in scan's stderr. Anything
-raising here falls back to core's default query, loudly.
+Cost: a big week is ~25,000 game markets across these leagues; scan reads
+them at 500 per request. If scans run long, shorten `hours` or move a
+low-value league out first, and say so in the retro.
 """
+import sys
+import pathlib
 
-TIER1 = (
-    # football
-    "football_team_full_game_winner",      # seen: NFL, CFB
-    "football_team_full_game_spread",      # seen: NFL 574, CFB 41
-    "football_team_full_game_total",       # seen: NFL 92, CFB 25
-    # basketball
-    "basketball_team_full_game_winner",    # seen: NBA, VTB
-    "basketball_team_full_game_spread",    # seen: NBA
-    "basketball_team_full_game_total",     # seen: NBA
-    # soccer
-    "soccer_team_full_time_winner",        # seen: UEL, UECL, La Liga, more
-    "soccer_team_full_game_spread",        # seen: UEL, UECL, La Liga
-    "soccer_team_full_game_total",         # seen: UEL, UECL, La Liga
-    # combat
-    "ufc_fight_winner",                    # seen: 10
-    "moneyline",                           # seen: boxing
-    # pattern guesses for sports with no games listed on 2026-10-15
-    "baseball_team_full_game_winner",
-    "baseball_team_full_game_spread",
-    "baseball_team_full_game_total",
-    "hockey_team_full_game_winner",
-    "hockey_team_full_game_spread",
-    "hockey_team_full_game_total",
-    "tennis_match_winner",
-    "esports_series_winner",
-)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "core"))
+import lanes  # noqa: E402
+import venue_us  # noqa: E402
 
-TIER2 = (
-    "football_team_first_half_spread",     # seen
-    "football_team_first_half_total",      # seen
-    "football_team_first_half_winner",     # seen
-    "soccer_team_first_half_winner",       # seen
-    "soccer_team_first_half_total",        # seen
-    "esports_series_map_handicap",         # seen
-    "esports_series_total_maps",           # seen
-)
+TYPES = (r"(full_game_(winner|spread|total)|full_time_winner|^moneyline|"
+         r"fight_winner|match_winner|series_winner|"
+         r"(half|quarter|period|inning)_(winner|spread|total)|"
+         r"team_points_full_game_total|series_map_handicap|series_total_(maps|games))$")
+HOURS = 48
 
 
 def queries(now, min_end, horizon, args, protected):
-    iso = lambda t: t.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
-    base = {"closed": "false", "categories": ["sports"],
-            "end_date_min": iso(min_end), "end_date_max": iso(horizon)}
-    out = [{**base, "_label": f"t1-{t}", "sportsMarketTypes": [t]} for t in TIER1]
-    out += [{**base, "_label": f"t2-{t}", "sportsMarketTypes": [t]} for t in TIER2]
+    out = []
+    for lane in lanes.LANE_NAMES:
+        leagues = sorted(c for c, (ln, _) in lanes.LEAGUES.items()
+                         if ln == lane and c in venue_us.LEAGUE_TAGS)
+        if leagues:
+            out.append({"closed": "false", "_label": f"lane-{lane}",
+                        "_us_games": {"leagues": leagues, "hours": HOURS, "types": TYPES}})
     return out
