@@ -10,7 +10,10 @@ only inside the rules in config/protected.json -> lanes.phases.<phase>:
   * max_step        one change moves a value by at most this much
   * evidence        at least min_settled_between_changes settled bets in that
                     scope (one league, or "_lane" for the lane defaults)
-                    since the scope's previous change
+                    since the scope's previous change, OR - for LOWERING
+                    min_edge only - shadow bets: settled forecasts whose edge
+                    over the ask fell in [new, old) on usable books, at least
+                    shadow_loosen.min_settled of them, beating the market
   * pace            at most max_changes_per_lane_per_day per lane (UTC day)
   * written down    every change carries a reason and the result it expects
 
@@ -138,16 +141,34 @@ def cmd_set(args):
         last = ls.last_change(params, scope)
         since = ls.settled_since(ls.scope_rows(rows, scope), last["ts"] if last else "")
         need = cfg["min_settled_between_changes"]
+        evidence, shadow = "bets", None
         if len(since) < need:
-            sys.exit(f"REJECTED: {len(since)} settled bets in scope {scope!r} since its last "
-                     f"change; phase {phase} needs {need}")
+            # Shadow route (loosening min_edge only): settled forecasts whose
+            # edge over the ask fell in [new, old) - the bets this change
+            # would have let through - must have beaten the market.
+            if field == "min_edge" and value < old:
+                fcs = [r for r in ls.load_jsonl(ls.FORECASTS) if ls.tag(r)[0] == lane]
+                shadow = ls.shadow_band(fcs, scope, params, value, old, last["ts"] if last else "")
+                if not ls.shadow_ok(shadow, cfg):
+                    sys.exit(f"REJECTED: {len(since)} settled bets in scope {scope!r} since its last "
+                             f"change (needs {need}), and the shadow bets in edge band "
+                             f"[{value}, {old}) do not qualify: n={shadow['n']} (needs "
+                             f"{cfg['shadow_loosen']['min_settled']}), brier {shadow['brier']}")
+                evidence = "shadow"
+            else:
+                sys.exit(f"REJECTED: {len(since)} settled bets in scope {scope!r} since its last "
+                         f"change; phase {phase} needs {need}")
         today = ls.changes_today(params, dt.datetime.now(dt.timezone.utc))
         if len(today) >= cfg["max_changes_per_lane_per_day"]:
             sys.exit(f"REJECTED: lane {lane} already made {len(today)} change(s) today "
                      f"(phase {phase} allows {cfg['max_changes_per_lane_per_day']})")
         entry = {"id": uuid.uuid4().hex[:10], "ts": ts, "scope": scope, "field": field,
                  "from": old, "to": value, "reason": args.reason, "expect": args.expect,
-                 "settled_since_previous": len(since), "phase": phase}
+                 "settled_since_previous": len(since), "phase": phase,
+                 "evidence": evidence}
+        if shadow is not None:
+            entry["shadow"] = {"n": shadow["n"], "brier": shadow["brier"],
+                               "pnl_per_dollar": shadow["pnl_per_dollar"]}
 
     apply(params, entry["scope"], entry["field"], entry["to"])
     params.setdefault("changes", []).append(entry)

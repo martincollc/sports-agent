@@ -1,5 +1,5 @@
 {
-  "_comment": "PROTECTED — the trading agent may not edit this file or anything in core/. Changes here are made by the human operator only (commit prefix 'operator:').",
+  "_comment": "PROTECTED \u2014 the trading agent may not edit this file or anything in core/. Changes here are made by the human operator only (commit prefix 'operator:').",
   "venue": "us",
   "_venue_comment": "Sports agent trades Polymarket US only (gateway.polymarket.us). Paper only.",
   "sim_bankroll_usd": 1000.0,
@@ -31,27 +31,155 @@
     "max_open_per_lane": 40,
     "max_per_game_usd": 10.0,
     "no_benchmark_stake_cap_usd": 1.0,
-    "no_benchmark_release": {"min_settled_bets": 10, "max_brier_delta": 0.0},
-    "benchmark_leagues": ["nfl", "cfb", "nba", "cbb", "wnba", "mlb", "kbo", "npb", "nhl", "mls", "epl", "lal", "bun", "sea", "lg1", "ucl", "uel", "uecl", "eflch", "lmx", "bra", "ufc", "boxing", "atp", "wta"],
-    "tier_unlock": {"_comment": "A league may bet tier 2 or 3 markets only after that league+tier has this many settled forecasts with forecast brier_delta strictly below max_brier_delta (agent better than the market mid).", "min_settled_forecasts": 20, "max_brier_delta": 0.0},
+    "no_benchmark_release": {
+      "min_settled_bets": 10,
+      "max_brier_delta": 0.0
+    },
+    "benchmark_leagues": [
+      "nfl",
+      "cfb",
+      "nba",
+      "cbb",
+      "wnba",
+      "mlb",
+      "kbo",
+      "npb",
+      "nhl",
+      "mls",
+      "epl",
+      "lal",
+      "bun",
+      "sea",
+      "lg1",
+      "ucl",
+      "uel",
+      "uecl",
+      "eflch",
+      "lmx",
+      "bra",
+      "ufc",
+      "boxing",
+      "atp",
+      "wta"
+    ],
+    "tier_unlock": {
+      "_comment": "A league may bet tier 2 or 3 markets only after that league+tier has this many settled forecasts with forecast brier_delta strictly below max_brier_delta (agent better than the market mid).",
+      "min_settled_forecasts": 20,
+      "max_brier_delta": 0.0
+    },
     "phases": {
       "paper": {
-        "bounds": {"min_edge": [0.01, 0.15], "max_spread": [0.02, 0.08], "stake_usd": [1.0, 10.0], "max_bets_per_cycle": [1, 10], "min_price": [0.05, 0.5], "max_price": [0.5, 0.95], "max_bet_tier": [1, 3]},
-        "max_step": {"min_edge": 0.02, "max_spread": 0.02, "stake_usd": 2.0, "max_bets_per_cycle": 2, "min_price": 0.05, "max_price": 0.05, "max_bet_tier": 1},
+        "bounds": {
+          "min_edge": [
+            0.01,
+            0.15
+          ],
+          "max_spread": [
+            0.02,
+            0.08
+          ],
+          "stake_usd": [
+            1.0,
+            10.0
+          ],
+          "max_bets_per_cycle": [
+            1,
+            10
+          ],
+          "min_price": [
+            0.05,
+            0.5
+          ],
+          "max_price": [
+            0.5,
+            0.95
+          ],
+          "max_bet_tier": [
+            1,
+            3
+          ]
+        },
+        "max_step": {
+          "min_edge": 0.02,
+          "max_spread": 0.02,
+          "stake_usd": 2.0,
+          "max_bets_per_cycle": 2,
+          "min_price": 0.05,
+          "max_price": 0.05,
+          "max_bet_tier": 1
+        },
         "min_settled_between_changes": 10,
         "max_changes_per_lane_per_day": 2,
         "revert_check_settled": 10,
-        "test_bets": {"max_share": 0.2, "max_below_min_edge": 0.02}
+        "test_bets": {
+          "max_share": 0.2,
+          "max_below_min_edge": 0.02
+        },
+        "shadow_loosen": {
+          "_comment": "min_edge may also be LOWERED (not raised) when settled shadow bets - forecasts whose edge over the ask fell in [new, old) on books a bet could have used - number at least min_settled since the scope's last change and beat the market (Brier delta strictly below max_brier_delta).",
+          "min_settled": 15,
+          "max_brier_delta": 0.0
+        }
       },
       "dialed": {
-        "bounds": {"min_edge": [0.02, 0.10], "max_spread": [0.02, 0.06], "stake_usd": [1.0, 10.0], "max_bets_per_cycle": [1, 10], "min_price": [0.05, 0.5], "max_price": [0.5, 0.95], "max_bet_tier": [1, 3]},
-        "max_step": {"min_edge": 0.01, "max_spread": 0.01, "stake_usd": 1.0, "max_bets_per_cycle": 1, "min_price": 0.05, "max_price": 0.05, "max_bet_tier": 1},
+        "bounds": {
+          "min_edge": [
+            0.02,
+            0.1
+          ],
+          "max_spread": [
+            0.02,
+            0.06
+          ],
+          "stake_usd": [
+            1.0,
+            10.0
+          ],
+          "max_bets_per_cycle": [
+            1,
+            10
+          ],
+          "min_price": [
+            0.05,
+            0.5
+          ],
+          "max_price": [
+            0.5,
+            0.95
+          ],
+          "max_bet_tier": [
+            1,
+            3
+          ]
+        },
+        "max_step": {
+          "min_edge": 0.01,
+          "max_spread": 0.01,
+          "stake_usd": 1.0,
+          "max_bets_per_cycle": 1,
+          "min_price": 0.05,
+          "max_price": 0.05,
+          "max_bet_tier": 1
+        },
         "min_settled_between_changes": 30,
         "max_changes_per_lane_per_day": 1,
         "revert_check_settled": 20,
-        "test_bets": {"max_share": 0.0, "max_below_min_edge": 0.0}
+        "test_bets": {
+          "max_share": 0.0,
+          "max_below_min_edge": 0.0
+        },
+        "shadow_loosen": {
+          "min_settled": 30,
+          "max_brier_delta": 0.0
+        }
       }
     },
-    "dial_in": {"_comment": "A lane may be promoted from paper to dialed when all hold.", "min_settled_bets": 100, "quiet_days": 3, "recent_window": 50, "max_brier_delta": 0.0}
+    "dial_in": {
+      "_comment": "A lane may be promoted from paper to dialed when all hold.",
+      "min_settled_bets": 100,
+      "quiet_days": 3,
+      "recent_window": 50,
+      "max_brier_delta": 0.0
+    }
   }
 }

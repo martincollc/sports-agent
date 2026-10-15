@@ -162,6 +162,14 @@ except Exception as e:  # noqa: BLE001
     err(f"core/lanes.py: does not import - {e}")
     _lanes = None
 initial = load_json("config/params-initial.json")
+_forecast_rows = []
+_fp = ROOT / "journal" / "forecasts.jsonl"
+if _fp.exists():
+    for _line in _fp.read_text().splitlines():
+        try:
+            _forecast_rows.append(json.loads(_line)) if _line.strip() else None
+        except json.JSONDecodeError:
+            pass
 _ledger_rows = []
 _lp = ROOT / "journal" / "ledger.jsonl"
 if _lp.exists():
@@ -177,6 +185,41 @@ def _row_tag(r):
         return r["lane"], r.get("league")
     c = _lanes.classify(r.get("slug"), r.get("market_type"))
     return c["lane"], c["league"]
+
+
+def _shadow_ok(lane, state, scope, lo, hi, since, until, ph):
+    """Re-check a shadow-evidence loosening of min_edge from the forecast log,
+    using the thresholds as replayed at the time of the change."""
+    need = ph.get("shadow_loosen") or {}
+    rows = []
+    for r in _forecast_rows:
+        if r.get("superseded_by") or r.get("status") not in ("won", "lost"):
+            continue
+        st = r.get("settled_ts") or r.get("ts") or ""
+        if not (since < st <= until):
+            continue
+        rl, lg = _row_tag(r)
+        if rl != lane or (scope != "_lane" and lg != scope):
+            continue
+        tier = r.get("tier")
+        if tier is None and _lanes:
+            tier = _lanes.classify(r.get("slug"), r.get("market_type"))["tier"]
+        eff = dict(state["defaults"])
+        eff.update(state["leagues"].get(lg) or {})
+        bid, ask, est = r.get("best_bid_at_record"), r.get("best_ask_at_record"), r.get("est_prob")
+        if not all(isinstance(x, (int, float)) for x in (bid, ask, est)):
+            continue
+        if tier not in (1, 2, 3) or tier > eff.get("max_bet_tier", 1):
+            continue
+        if ask - bid > eff.get("max_spread", 1) + 1e-9 or not eff.get("min_price", 0) <= ask <= eff.get("max_price", 1):
+            continue
+        if lo - 1e-9 <= est - ask < hi - 1e-9:
+            rows.append((est, ask, 1 if r["status"] == "won" else 0))
+    if len(rows) < need.get("min_settled", 10 ** 9):
+        return False
+    a = sum((e - y) ** 2 for e, _, y in rows) / len(rows)
+    m = sum((k - y) ** 2 for _, k, y in rows) / len(rows)
+    return (a - m) < need.get("max_brier_delta", 0.0)
 
 
 def _value(state, scope, field):
@@ -202,7 +245,7 @@ if protected and initial and _lanes and isinstance(protected.get("lanes"), dict)
                  "leagues": {k: dict(v) for k, v in (init.get("leagues") or {}).items()}}
         rows = [r for r in _ledger_rows if _row_tag(r)[0] == lane
                 and r.get("status") in ("won", "lost")]
-        last_ts, per_day, seen = {}, {}, {}
+        last_ts, per_day, seen, last_any = {}, {}, {}, {}
         prev_any = ""
         now_z = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         for i, c in enumerate(prm.get("changes") or []):
@@ -225,6 +268,7 @@ if protected and initial and _lanes and isinstance(protected.get("lanes"), dict)
                             err(f"{where}: promotion with {blk_scope}.{f}={v} outside dialed bounds {db[f]}")
                 state["phase"] = to
                 seen[c.get("id")] = c
+                last_any["_lane"] = cts
                 continue
             ph = LC["phases"][state["phase"]]
             if field not in ph["bounds"]:
@@ -252,8 +296,15 @@ if protected and initial and _lanes and isinstance(protected.get("lanes"), dict)
                 n = sum(1 for r in rows if (scope == "_lane" or _row_tag(r)[1] == scope)
                         and prev < (r.get("settled_ts") or r.get("ts") or "") <= c.get("ts", ""))
                 if n < ph["min_settled_between_changes"]:
-                    err(f"{where}: only {n} settled bets in {scope} since its previous change "
-                        f"(needs {ph['min_settled_between_changes']})")
+                    ok_shadow = False
+                    if c.get("evidence") == "shadow" and field == "min_edge" and \
+                            isinstance(to, (int, float)) and isinstance(old, (int, float)) and to < old:
+                        ok_shadow = _shadow_ok(lane, state, scope, to, old, last_any.get(scope, ""),
+                                               c.get("ts", ""), ph)
+                    if not ok_shadow:
+                        err(f"{where}: only {n} settled bets in {scope} since its previous change "
+                            f"(needs {ph['min_settled_between_changes']}) and no qualifying "
+                            f"shadow-bet evidence")
                 day = (c.get("ts") or "")[:10]
                 per_day[day] = per_day.get(day, 0) + 1
                 if per_day[day] > ph["max_changes_per_lane_per_day"]:
@@ -264,6 +315,7 @@ if protected and initial and _lanes and isinstance(protected.get("lanes"), dict)
             else:
                 state["leagues"].setdefault(scope, {})[field] = to
             seen[c.get("id")] = c
+            last_any[scope] = c.get("ts", "")
         for key in ("phase", "defaults", "leagues"):
             if prm.get(key) != state[key]:
                 err(f"{rel}: '{key}' does not match its change log replayed from "

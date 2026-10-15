@@ -265,6 +265,53 @@ class LaneTests(unittest.TestCase):
         c = self.py("core/lanestats.py", "--compact")
         self.assertIn("REVERT DUE", c.stdout)
 
+    # ------------------------------------------------------------ shadow bets
+
+    def write_forecasts(self, league, n, est, ask, won, bid=None, start="2026-02-01T00:00:00Z"):
+        t0 = dt.datetime.fromisoformat(start.replace("Z", "+00:00"))
+        path = self.root / "journal" / "forecasts.jsonl"
+        rows = [json.loads(x) for x in path.read_text().splitlines() if x]
+        for i in range(n):
+            ts = (t0 + dt.timedelta(hours=i)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            rows.append({"id": f"f{len(rows)}", "ts": ts, "market_id": f"aec-{league}-g{i}",
+                         "slug": f"aec-{league}-g{i}", "question": "q", "outcome": "Home",
+                         "token_id": "us:x:long", "est_prob": est,
+                         "best_bid_at_record": bid if bid is not None else round(ask - 0.01, 4),
+                         "best_ask_at_record": ask, "market_prob_at_record": ask - 0.005,
+                         "category": league, "skip_reason": "no-edge",
+                         "status": "won" if won else "lost", "settled_ts": ts,
+                         "lane": "basketball", "league": league, "tier": 1})
+        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    def test_shadow_bets_unlock_loosening(self):
+        # edge 0.03 (in [0.02, 0.04)), outcome happened: agent closer than the ask
+        self.write_forecasts("nba", 15, est=0.53, ask=0.50, won=True)
+        rep = json.loads(self.py("core/lanestats.py", "--lane", "basketball").stdout)
+        sh = rep["lanes"]["basketball"]["leagues"]["nba"]["shadow_next_step"]
+        self.assertEqual((sh["n"], sh["can_loosen_min_edge"]), (15, True))
+        # raising is never allowed on shadow evidence
+        self.assertIn("settled bets", self.setp("--scope", "nba", "--field", "min_edge", "--value", "0.05",
+                                                "--reason", "r", "--expect", "e").stderr)
+        r = self.setp("--scope", "nba", "--field", "min_edge", "--value", "0.02",
+                      "--reason", "shadow n=15 beat market", "--expect", "more bets, same accuracy")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        ch = json.loads((self.root / "strategy" / "params" / "basketball.json").read_text())["changes"][-1]
+        self.assertEqual((ch["evidence"], ch["shadow"]["n"]), ("shadow", 15))
+        v = self.py("core/validate.py")
+        self.assertEqual(v.returncode, 0, v.stdout)
+        # the same change written by hand without enough forecasts fails CI
+        (self.root / "journal" / "forecasts.jsonl").write_text("")
+        self.assertIn("shadow", self.py("core/validate.py").stdout)
+
+    def test_shadow_rejects_losing_band_and_wide_books(self):
+        self.write_forecasts("nba", 15, est=0.53, ask=0.50, won=False)
+        self.assertIn("do not qualify", self.setp("--scope", "nba", "--field", "min_edge", "--value", "0.02",
+                                                  "--reason", "r", "--expect", "e").stderr)
+        (self.root / "journal" / "forecasts.jsonl").write_text("")
+        self.write_forecasts("nba", 15, est=0.53, ask=0.50, won=True, bid=0.10)  # placeholder book
+        rep = json.loads(self.py("core/lanestats.py", "--lane", "basketball").stdout)
+        self.assertEqual(rep["lanes"]["basketball"]["leagues"]["nba"]["shadow_next_step"]["n"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

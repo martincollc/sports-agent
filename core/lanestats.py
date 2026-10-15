@@ -195,6 +195,47 @@ def test_bet_split(rows):
     return out
 
 
+def shadow_band(fc_rows, scope, params, lo, hi, since=""):
+    """Shadow bets: settled forecasts in `scope` whose edge over the ask
+    (est_prob - best_ask_at_record) fell in [lo, hi), on books a real bet
+    could have used (spread and price band of the scope's current params,
+    tier allowed or unlocked). Scored like bets: Brier of the agent's
+    probability vs the ask it would have paid; delta < 0 = beat the market.
+    Only forecasts settled after `since` count."""
+    rows = []
+    for r in fc_rows:
+        if r.get("superseded_by") or r.get("status") not in ("won", "lost"):
+            continue
+        if settled_key(r) <= (since or ""):
+            continue
+        lane, league, tier = tag(r)
+        if scope != "_lane" and league != scope:
+            continue
+        eff = effective(params, league)
+        bid, ask = r.get("best_bid_at_record"), r.get("best_ask_at_record")
+        if not (num(bid) and num(ask) and num(r.get("est_prob"))):
+            continue
+        if tier not in (1, 2, 3) or tier > eff.get("max_bet_tier", 1):
+            continue
+        if ask - bid > eff.get("max_spread", 1) + 1e-9:
+            continue
+        if not eff.get("min_price", 0) <= ask <= eff.get("max_price", 1):
+            continue
+        edge = r["est_prob"] - ask
+        if lo - 1e-9 <= edge < hi - 1e-9:
+            rows.append(dict(r, _ask=ask))
+    b = brier(rows, "est_prob", "_ask")
+    pnl = sum((1 / r["_ask"] - 1) if r["status"] == "won" else -1 for r in rows)
+    return {"lo": round(lo, 4), "hi": round(hi, 4), "n": len(rows), "brier": b,
+            "pnl_per_dollar": round(pnl / len(rows), 4) if rows else None}
+
+
+def shadow_ok(sh, cfg):
+    need = cfg["shadow_loosen"]
+    return bool(sh["n"] >= need["min_settled"] and sh["brier"]
+                and sh["brier"]["delta"] < need["max_brier_delta"])
+
+
 def dial_in(params, bet_rows, now):
     need = LCFG["dial_in"]
     s = settled(bet_rows)
@@ -211,6 +252,21 @@ def dial_in(params, bet_rows, now):
                        % (need["recent_window"], b["delta"] if b else "n/a"))
     return {"eligible": not reasons and params.get("phase", "paper") == "paper",
             "phase": params.get("phase", "paper"), "missing": reasons}
+
+
+def shadow_next(frows, scope, params, cfg, last):
+    """Shadow evidence for lowering min_edge by one full step in `scope`."""
+    cur = (params.get("defaults") or {}).get("min_edge") if scope == "_lane" \
+        else effective(params, scope).get("min_edge")
+    if not num(cur):
+        return None
+    lo = max(LCFG["phases"][params.get("phase", "paper")]["bounds"]["min_edge"][0],
+             round(cur - cfg["max_step"]["min_edge"], 4))
+    if lo >= cur:
+        return None
+    sh = shadow_band(frows, scope, params, lo, cur, (last or {}).get("ts", ""))
+    sh["can_loosen_min_edge"] = shadow_ok(sh, cfg)
+    return sh
 
 
 def changes_today(params, now):
@@ -262,6 +318,7 @@ def report(lane_filter=None, now=None):
                 "params": effective(params, lg),
                 "settled_since_last_change": len(since),
                 "can_change": len(since) >= cfg["min_settled_between_changes"],
+                "shadow_next_step": shadow_next(frows, lg, params, cfg, lc),
             }
         lane_since = settled_since(rows, (last_change(params, "_lane") or {}).get("ts", ""))
         realized = round(sum(r.get("pnl_usd") or 0 for r in s), 2)
@@ -279,6 +336,7 @@ def report(lane_filter=None, now=None):
             "forecasts": {"recorded": len(frows), "settled": len(settled(frows))},
             "defaults": params.get("defaults"),
             "lane_defaults_can_change": len(lane_since) >= cfg["min_settled_between_changes"],
+            "lane_shadow_next_step": shadow_next(frows, "_lane", params, cfg, last_change(params, "_lane")),
             "changes_today": len(ct), "changes_left_today": max(0, cfg["max_changes_per_lane_per_day"] - len(ct)),
             "revert_due": revert_due(params, rows),
             "dial_in": dial_in(params, rows, now),

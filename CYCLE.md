@@ -128,6 +128,16 @@ procedure exactly once, then stop. Work from this directory.
         --field <min_edge|max_spread|stake_usd|max_bets_per_cycle|min_price|max_price|max_bet_tier> \
         --value <v> --reason "<evidence: n, Brier delta, test-bet results>" \
         --expect "<what should happen to accuracy or bet count>"`
+      **Shadow route for loosening:** a league that rarely bets cannot
+      collect settled bets, so `min_edge` may also be LOWERED on shadow
+      evidence: settled forecasts whose edge over the ask fell in the band
+      the change would open, on books a bet could have used. lanestats
+      reports this per league as `shadow_next_step` (and
+      `lane_shadow_next_step` for the lane defaults); when
+      `can_loosen_min_edge` is true, `core/params.py set` accepts the
+      one-step loosening even without 10 settled bets. Cite the shadow n
+      and Brier delta in --reason. This is why every researched candidate
+      must get a forecast (step 5b): skipped games are the evidence.
       Judge by Brier delta against the market, never by P&L alone. Typical
       moves: forecasts beat the market but few bets clear min_edge and test
       bets did well -> loosen min_edge; bets lose to the market -> tighten
