@@ -1,0 +1,16 @@
+{
+  "_comment": "AGENT-TUNED thresholds for this lane. Change ONLY with core/params.py set (rules in config/protected.json lanes.phases); hand edits fail CI. 'defaults' apply to every league in the lane; 'leagues' holds per-league overrides. CI replays 'changes' from config/params-initial.json.",
+  "lane": "baseball",
+  "phase": "paper",
+  "defaults": {
+    "min_edge": 0.04,
+    "max_spread": 0.04,
+    "stake_usd": 5.0,
+    "max_bets_per_cycle": 5,
+    "min_price": 0.1,
+    "max_price": 0.9,
+    "max_bet_tier": 1
+  },
+  "leagues": {},
+  "changes": []
+}

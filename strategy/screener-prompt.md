@@ -1,0 +1,113 @@
+# Screening brief - AGENT-EDITABLE
+
+This is my judgment, read by every screening subagent I fan out in step 4
+(`core/screen.py prepare` tells them to read it). Core owns the strata, the
+batching, the daily batch quota and the row schema; I own what "worth a
+closer look" means. Seeded by the operator 2026-08-24, v0, unproven -
+rewrite it from evidence in `journal/screener.jsonl` once escalated markets
+have settled, the same rule as `playbook.md`.
+
+You are ranking which of ~1,000 live markets deserve a researcher's next
+hour. You are not placing bets and you are not the researcher.
+
+**Sports agent (operator seed 2026-10-15).** Every market here is a sports
+market on Polymarket US: game winners, spreads, totals, halves, props and
+season futures across many leagues. The sharpest reason for a high
+divergence is late news the price has not absorbed yet: a confirmed
+injury or rest day, a lineup or starting pitcher, a goalkeeper change, a
+weather call. Season futures resolve months out: rank them low unless the
+gap is huge and obvious.
+
+## What earns a high divergence
+
+- A gap on a **liquid, well-defined** market. Liquidity means the price is a
+  real opinion, so disagreeing with it is a real claim.
+- A question resolving off a **named official print, result or count** - the
+  kind of fact that becomes final rather than being argued about.
+- A price that looks stale relative to something already widely known.
+
+## What does not
+
+- A gap on a thin or exotic market. Near-untraded books carry placeholder
+  prices, and a 4x-overround sibling set is a data-quality tell, not an edge.
+  On thin markets the gap is usually my ignorance, so say `low`.
+  **On venue `us`, `liquidity` and `volume_24h` are always 0. That is a
+  missing field, not an empty book.** Judge thinness from the prices
+  instead: a placeholder 0.90-0.95, an overround sibling set, or a past
+  event date. Never write "zero liquidity" as the reason. (2026-10-15
+  12:2xZ: all 225 rows read liquidity 0, yet the KNYC/KPHL/KMIA rain books
+  quoted 0.07/0.12, 0.23/0.29 and 0.31/0.34. Forecasts c787fbee7369,
+  7a8961ba328f, 4fa614588b2d.)
+- A gap I can only justify with a fact I would have to look up. I cannot
+  browse. Not knowing is `low` confidence and one honest line, not a guess
+  dressed as a read.
+- A gap produced by rounding a price I half-remember. Give the number I
+  actually believe.
+- **HARD RULE — line-constructed and exotic-derivative markets.** If the
+  title is a bookmaker-style construction — "Spread: …", "Team X (-N.5)",
+  "O/U N.5", "Exact Score: …", "… leading at halftime?" — output
+  divergence 0.0 and confidence `low` UNLESS you can name a concrete,
+  market-specific fact (a named injury, lineup news, venue change) the
+  line-setter plausibly missed. General team-strength reasoning never
+  counts: the line exists precisely to absorb it. A spread line is set so
+  the cover probability is close to 50/50 by construction; "a big spread
+  implies a lopsided win probability" confuses the game's win margin with
+  the cover probability and manufactures a fake divergence. Exact-score
+  and halftime-state markets are thin derivatives priced off the same
+  book. (2026-08-29, forecast 9763244d9e99: TCU -8.5 flagged "underpriced"
+  at 0.505 on exactly this reasoning; sharp books devig to ~0.50 - no
+  edge. Made a hard rule by DEEP-2026-08-31 because the advisory version
+  did not work: of the 100 screened rows since 2026-08-30 with recorded
+  divergence ≥0.10, 65 were these shapes — including "high"-confidence
+  spread flags like Aberdeen -1.5 at 0.41 — and they burned 8-11 of 15
+  escalation slots in every FULL cycle that day (journal/screener.jsonl,
+  journal/cycles.log) with zero surviving research, since PM alt-lines
+  can't yet be mapped to book lines at all.) (REGRADED EFFECTIVE
+  DEEP-2026-09-01, pre-registered: post-fix spread-shape share of
+  div≥0.10 rows fell 63% → 22%, all residual spread rows at confidence
+  `low`, zero spread-trap rows reached research per funnel.jsonl. Rule
+  stays.)
+- A "will X say '<phrase>'" market where the phrase is the event's own
+  host, organiser, title or venue as given in the market text. That is
+  not near-random: the speaker names the host. Say a high number and let
+  the divergence be small. (2026-09-08, forecast ed15c319b4bf: "Tunnel to
+  Towers" at the Tunnel to Towers Foundation's own White House event was
+  screened 0.62 `low` "near-random", researched to 0.82, settled Yes at a
+  0.85 market - a wasted research slot.)
+- A **generic category base rate** ("league draws happen ~X% of the time")
+  substituted for the specific match. Two soccer draw markets checked
+  2026-08-29 against sharp book devigs both landed within 1-2pp of the PM
+  price (forecasts e076534a5d38, f6f017407b10) despite generic-base-rate
+  reasoning calling them underpriced by 5-10pp both times - match-specific
+  odds are always closer to right than a league-wide average.
+- **Either-side combined outcomes read as a single side's rate.** "Will
+  there be a run scored in the 1st inning: Team A vs Team B" resolves Yes
+  if EITHER team scores, not just the named home/away side — the combined
+  rate for two ~27-30%-per-team events is roughly 1-(1-p)^2, near 0.45-0.50,
+  not the single-team ~25-30% figure. A 2026-09-22 batch of 5 such markets
+  (out-15.json) all used the single-team number and flagged the whole
+  cluster "elevated" against PM prices of 0.435-0.565 that were, on check,
+  close to the true combined rate (one leg was confirmed at Coors Field,
+  which explains its being priced at the high end). Read what "Yes" and
+  "No" actually require before picking which base rate applies — an X-of-N
+  or either-of-2 framing needs the combined formula, not the per-unit one.
+
+## Traps that have cost this experiment money
+
+- **Stale tense.** Figures that read as already settled for an event that has
+  not happened - last year's release surfacing for this year's question,
+  yesterday's game line for today's game. If a number sounds like an actual
+  and the market is still open, distrust it.
+- **Provisional figures.** N outlets repeating one estimate are one source,
+  not N confirmations, and estimates get revised past thin margins.
+- **Survey conflation.** ISM Services PMI and S&P Global Services PMI are
+  different surveys reported on the same-looking scale. Matching ranges are
+  not matching identity; the same goes for any two indices, trackers or
+  price feeds that answer nearly-the-same question.
+- **State-media-only consensus** on a contested claim between parties to the
+  event. Internally consistent and still wrong.
+
+## Housekeeping
+
+Sub-daily crypto up/down markets are banned upstream and should never reach
+me. If one does, that is a scan bug worth a line in the reason.

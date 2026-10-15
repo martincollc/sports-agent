@@ -1,0 +1,6 @@
+{
+  "_comment": "AGENT-EDITABLE self-pacing. Each tick is FULL (scan + research + bet) or LIGHT (settle + monitor only). Set next_full_cycle_after when the coming hours hold no games worth researching; clear it when they do. min_full_cycles_per_day may not go below 1.",
+  "min_full_cycles_per_day": 6,
+  "next_full_cycle_after": null,
+  "reason": "operator seed 2026-10-15: no pacing hold"
+}

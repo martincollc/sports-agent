@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "AGENT-EDITABLE and LIVE since 2026-09-04: core/screen.py prepare applies these as a",
+    "pre-filter before the strata fill, so a dropped shape never reaches a Haiku batch.",
+    "core/screen_rank.py rank (dormant) reads the same file. Every filter reports its",
+    "count in prepare's header under dropped_by_reason as filter:<name>.",
+    "",
+    "These are the rules of strategy/screener-prompt.md that a formula can apply",
+    "without a model. The rank mode scores every screened market by mid uncertainty",
+    "2p(1-p) and escalates the top N, so a shape that sits near 0.50 BY CONSTRUCTION",
+    "would take the whole list. That is what these drop. Measured on",
+    "journal/screener.jsonl over 22,333 gradeable rows and 75 collect runs",
+    "(gnhf run 3, 2026-09-04); each note carries its own footprint.",
+    "",
+    "exclude_title_patterns: case-insensitive Python regexes matched against the",
+    "  market question. A pattern that fails to compile is skipped loudly on stderr",
+    "  and the rest still apply - a broken filter must degrade the list, never stop",
+    "  the rank. Adding a pattern is cheap; adding one with no measured footprint is",
+    "  how this file rots. Cite the footprint in the note.",
+    "exclude_mids_exactly_half: drop markets whose recorded mids are all exactly",
+    "  0.500. Those are the arithmetic maximum of 2p(1-p) and would head every list,",
+    "  and they resolve at 0.412 against 0.838 for all screened markets - an exact",
+    "  0.500 on gamma is usually a placeholder price, not an even contest. Median 1",
+    "  such row per collect run, max 14.",
+    "min_outcomes / max_outcomes: 2p(1-p) is a binary formula. Every market screened",
+    "  so far is binary; a non-binary one is dropped rather than scored wrong.",
+    "",
+    "What is NOT here, and why: 'liquid and well-defined', 'a named official print',",
+    "'a stale price', 'thin or exotic', 'a fact I would have to look up' and the four",
+    "traps in screener-prompt.md have no deterministic reading on a screener row, so",
+    "no filter here claims to reproduce them. Dropping the Haiku tier drops those",
+    "judgments outright; that is the cost of the switch, not an oversight.",
+    "",
+    "SPORTS AGENT (operator seed 2026-10-15): line_constructed was removed. Spreads and totals are tier-1 markets here, and the screening brief's line rule still pins them to divergence 0 unless the screener can name a concrete fact (injury, lineup, venue) the line missed - which is exactly the edge the lanes hunt for. weather_temperature was removed as irrelevant (sports only)."
+  ],
+  "exclude_title_patterns": [
+    {
+      "name": "crypto_updown",
+      "pattern": "\\b(bitcoin|btc|ethereum|eth|solana|sol|xrp|dogecoin|doge)\\b.{0,40}\\b(up or down|higher or lower|above|below)\\b|\\bup or down\\b.{0,30}\\b(am|pm|et|utc)\\b",
+      "note": "screener-prompt.md housekeeping: sub-daily crypto up/down markets are banned upstream and should never reach the screen. The ban leaks on 1.5-2.4% of pool rows per revision, so the filter is small but real; the Haiku tier pins 59-66% of them to divergence 0.0 under the two rule-carrying revisions."
+    },
+    {
+      "name": "crypto_bracket",
+      "pattern": "\\b(bitcoin|btc|ethereum|eth|solana|sol|xrp|dogecoin|doge)\\b.{0,30}\\bbetween\\s+\\$?[\\d,.]+[kK]?\\s+and\\s+\\$?[\\d,.]+[kK]?\\b",
+      "note": "Added 2026-09-17 00:1xZ (FULL cycle, cloud). screener-prompt.md's sub-daily-crypto ban is a shape ban, not an up/down-phrasing ban, but crypto_updown's regex only matches up/down phrasing -- same-day price-bracket questions ('Will the price of Ethereum be between $2,400 and $2,500 on September 17?') are the identical banned shape (single-day BTC/ETH/SOL price window) worded as a range instead. Measured this cycle's raw scan (1,114 candidates, core/scan.py --hours 336): 8 bracket-shape rows leaked past crypto_updown, and 3 of them took top-15 escalation slots this cycle alone (20% of one cycle's 15 slots) on markets a subagent independently flagged 'banned sub-daily crypto market - scan bug' in its own reason. Small population (8/1114, 0.7%) but a disproportionate and recurring cost to a scarce, capped resource (escalation slots); same fix pattern as the existing crypto_updown and weather_temperature entries."
+    },
+    {
+      "name": "crypto_price_range_us",
+      "pattern": "\\b(bitcoin|btc|ethereum|eth|solana|sol|xrp|dogecoin|doge)\\s+price\\s+range\\s+at\\b",
+      "note": "Added 2026-10-14 15:3xZ (FULL cycle, operator, venue us). Polymarket US words the banned sub-daily crypto bracket shape as 'BTC Price Range at 12:00PM ET on Wed, Oct 14' (slug cpc-btc-range-hr-*), which neither crypto_updown nor crypto_bracket matches. Footprint: 91/300 screened rows (30%) at the 15:33Z collect and 71 at the 13:xxZ collect; 9 of the 15:33Z top-15 escalations were these bins, all low-confidence 'spot unknown, thin book'. Same fix pattern as crypto_bracket. Multi-day touch rows ('How high will BTC get by ... Fri') are not sub-daily and stay in."
+    },
+    {
+      "name": "crypto_price_at_us",
+      "pattern": "\\b(bitcoin|btc|ethereum|eth|solana|sol|xrp|dogecoin|doge)\\s+price\\s+at\\s+\\d",
+      "note": "Added 2026-10-14 17:5xZ (FULL cycle, operator, venue us). The US strike ladders 'BTC Price at 2:00PM ET on Wed, Oct 14' (slugs cpc-btc-above-hr-*/-day-*/-wk-*) are the same banned point-in-time crypto shape that crypto_price_range_us cut, worded without 'range'. Footprint at the 17:51Z prepare: 85/300 screened rows (28%), 9 of the 15 escalations, every one low-confidence 'spot unknown, ladder non-monotone'. shortcut: also drops the 3 weekly (-wk-, Fri close) rungs, which are not sub-daily; split by date if a weekly crypto rung is ever worth a research slot."
+    }
+  ],
+  "exclude_mids_exactly_half": true,
+  "min_outcomes": 2,
+  "max_outcomes": 2
+}

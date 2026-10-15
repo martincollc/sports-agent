@@ -1,0 +1,107 @@
+{
+  "_comment": "OPERATOR-OWNED starting thresholds per lane. core/validate.py replays each strategy/params/<lane>.json change log from here, so the agent's files can only move by logged, rule-checked changes.",
+  "baseball": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.04,
+      "max_spread": 0.04,
+      "stake_usd": 5.0,
+      "max_bets_per_cycle": 5,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  },
+  "basketball": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.04,
+      "max_spread": 0.04,
+      "stake_usd": 5.0,
+      "max_bets_per_cycle": 5,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  },
+  "combat": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.05,
+      "max_spread": 0.04,
+      "stake_usd": 3.0,
+      "max_bets_per_cycle": 3,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  },
+  "esports": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.05,
+      "max_spread": 0.04,
+      "stake_usd": 3.0,
+      "max_bets_per_cycle": 3,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  },
+  "football": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.05,
+      "max_spread": 0.04,
+      "stake_usd": 3.0,
+      "max_bets_per_cycle": 3,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  },
+  "hockey": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.05,
+      "max_spread": 0.04,
+      "stake_usd": 3.0,
+      "max_bets_per_cycle": 3,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  },
+  "soccer": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.05,
+      "max_spread": 0.04,
+      "stake_usd": 5.0,
+      "max_bets_per_cycle": 5,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  },
+  "tennis": {
+    "phase": "paper",
+    "defaults": {
+      "min_edge": 0.05,
+      "max_spread": 0.04,
+      "stake_usd": 3.0,
+      "max_bets_per_cycle": 3,
+      "min_price": 0.1,
+      "max_price": 0.9,
+      "max_bet_tier": 1
+    },
+    "leagues": {}
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "_comment": "OPERATOR-OWNED on/off switch per lane. Off = no new bets in that lane (forecasts and settlement continue). Change with an 'operator:' commit. The dashboard's Control room switches are a view of this file until a sync is built.",
+  "lanes": {
+    "football": {"enabled": true},
+    "basketball": {"enabled": true},
+    "baseball": {"enabled": true},
+    "soccer": {"enabled": true},
+    "hockey": {"enabled": true},
+    "combat": {"enabled": true},
+    "tennis": {"enabled": true},
+    "esports": {"enabled": true}
+  }
+}
