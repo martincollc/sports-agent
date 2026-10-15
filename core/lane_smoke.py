@@ -26,7 +26,7 @@ import venue_us  # noqa: E402
 
 
 def run(q, limit=100):
-    q = {k: v for k, v in q.items() if not k.startswith("_")}
+    q = {k: v for k, v in q.items() if k != "_label"}
     try:
         return venue_us.markets(**q, limit=limit, offset=0), None
     except Exception as e:  # noqa: BLE001
