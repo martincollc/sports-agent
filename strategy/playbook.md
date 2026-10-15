@@ -58,6 +58,11 @@ an estimate on aggregator "prediction model" numbers.
   FanDuel/BetRivers devig on 10 of 10 checked (largest: Harvard, Dartmouth,
   Alabama A&M at +0.02-0.03). The book-devig edge is not there on FCS
   winners. Spend research on news the line has not absorbed, close to kickoff.
+- Same on FBS and NHL (20:3xZ cycle): 7 FBS winner books (spread 0.005)
+  within 0.02 of the 9-book devig, 13 NHL books (spread 0.01) within 0.012.
+  PM US h2h on leagues with deep outside books is a book mirror; one odds
+  call per league is enough to confirm it, then spend the slot elsewhere
+  (pre-lineup news, tier-2 forecasts, leagues the books price thinly).
 
 ## Outside-view veto (Phil)
 

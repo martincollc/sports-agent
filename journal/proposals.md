@@ -24,3 +24,13 @@ that a headless run cannot give. So devig.py, quote.py and siblings.py are
 unusable mid-cycle, and step 0's PHIL_LEASE / PHIL_PUSH_BY_LOOP checks
 cannot be read. Proposal: allow `python3 strategy/tools/*` and `printenv
 PHIL_*` in .claude/settings.json.
+
+## 2026-10-15 20:3xZ — placeholder books still take the screener's top slots
+
+The 20:27Z collect escalated 20; the top 19 by divergence were 0.89-0.91 /
+0.09-0.11 mids on AHL, DEL, ACB, BSL, CBA and esports games, every one
+flagged "placeholder book?" by its screener. `exclude_mids_exactly_half`
+catches the 0.500 placeholder but not this one, and screener-filters.json
+has no mid-based rule the agent can add. Proposal (core/screen.py): an
+`exclude_mids_at_or_beyond` filter (e.g. 0.89) for venue `us`, or drop
+markets whose live book is one-sided, so escalation slots go to priced games.
