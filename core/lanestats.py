@@ -141,7 +141,7 @@ def tier_unlocked(fc_rows, league, tier_n):
     rows = [r for r in fc_rows if tag(r)[1] == league and tag(r)[2] == tier_n]
     b = fc_brier(rows)
     need = LCFG["tier_unlock"]
-    ok = bool(b and b["n"] >= need["min_settled_forecasts"] and b["delta"] <= need["max_brier_delta"])
+    ok = bool(b and b["n"] >= need["min_settled_forecasts"] and b["delta"] < need["max_brier_delta"])
     return ok, b
 
 
@@ -168,8 +168,10 @@ def revert_due(params, bet_rows):
         if later:
             continue
         rows = settled(scope_rows(bet_rows, c["scope"]))
-        post = [r for r in rows if settled_key(r) > c["ts"]][:n]
-        pre = [r for r in rows if settled_key(r) <= c["ts"]][-n:]
+        # windows by when the bet was PLACED: a bet placed before the change
+        # was not made under it, whenever it settled
+        post = [r for r in rows if (r.get("ts") or "") > c["ts"]][:n]
+        pre = [r for r in rows if (r.get("ts") or "") <= c["ts"]][-n:]
         if len(post) < n or len(pre) < max(5, n // 2):
             continue
         bpost, bpre = bet_brier(post), bet_brier(pre)
@@ -177,6 +179,19 @@ def revert_due(params, bet_rows):
             out.append({"change": c["id"], "scope": c["scope"], "field": c["field"],
                         "from": c["from"], "to": c["to"],
                         "before_delta": bpre["delta"], "after_delta": bpost["delta"]})
+    return out
+
+
+def test_bet_split(rows):
+    """Test bets (placed just under min_edge) against regular bets, so the
+    tuning step can see whether min_edge is costing good bets."""
+    out = {}
+    for name, sel in (("test", [r for r in rows if r.get("test_bet")]),
+                      ("regular", [r for r in rows if not r.get("test_bet")])):
+        s = settled(sel)
+        out[name] = {"placed": len(sel), "settled": len(s),
+                     "pnl": round(sum(r.get("pnl_usd") or 0 for r in s), 2),
+                     "brier": bet_brier(sel)}
     return out
 
 
@@ -241,6 +256,7 @@ def report(lane_filter=None, now=None):
                 "forecast_brier": fc_brier(lfc),
                 "forecast_brier_by_tier": {str(t): fc_brier([r for r in lfc if tag(r)[2] == t]) for t in (1, 2, 3, "future")},
                 "tier_unlocked": {"2": tier_unlocked(frows, lg, 2)[0], "3": tier_unlocked(frows, lg, 3)[0]},
+                "test_bets": test_bet_split(lrows),
                 "benchmark": lg in LCFG["benchmark_leagues"],
                 "stake_cap_released": rel,
                 "params": effective(params, lg),
@@ -259,6 +275,7 @@ def report(lane_filter=None, now=None):
             "open": len(opn), "open_stake": open_stake,
             "placed": len(rows), "settled": len(s), "wins": sum(1 for r in s if r["status"] == "won"),
             "bet_brier": bet_brier(rows), "forecast_brier": fc_brier(frows),
+            "test_bets": test_bet_split(rows),
             "forecasts": {"recorded": len(frows), "settled": len(settled(frows))},
             "defaults": params.get("defaults"),
             "lane_defaults_can_change": len(lane_since) >= cfg["min_settled_between_changes"],

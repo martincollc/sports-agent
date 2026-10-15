@@ -203,12 +203,26 @@ if protected and initial and _lanes and isinstance(protected.get("lanes"), dict)
         rows = [r for r in _ledger_rows if _row_tag(r)[0] == lane
                 and r.get("status") in ("won", "lost")]
         last_ts, per_day, seen = {}, {}, {}
+        prev_any = ""
+        now_z = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         for i, c in enumerate(prm.get("changes") or []):
             where = f"{rel}: change {i} ({c.get('id')})"
             scope, field, to = c.get("scope"), c.get("field"), c.get("to")
+            cts = c.get("ts") or ""
+            check_iso_z(rel, f"change {i} ts", cts)
+            if cts < prev_any or cts > now_z:
+                err(f"{where}: ts {cts!r} is out of order or in the future")
+            prev_any = max(prev_any, cts)
+            if not str(c.get("reason") or "").strip() or not str(c.get("expect") or "").strip():
+                err(f"{where}: every change needs a reason and an expected result")
             if field == "phase":
                 if not (c.get("from") == state["phase"] == "paper" and to == "dialed"):
                     err(f"{where}: only paper -> dialed promotion is allowed")
+                db = LC["phases"]["dialed"]["bounds"]
+                for blk_scope, blk in [("_lane", state["defaults"])] + list(state["leagues"].items()):
+                    for f, v in blk.items():
+                        if f in db and not db[f][0] <= v <= db[f][1]:
+                            err(f"{where}: promotion with {blk_scope}.{f}={v} outside dialed bounds {db[f]}")
                 state["phase"] = to
                 seen[c.get("id")] = c
                 continue
@@ -227,8 +241,8 @@ if protected and initial and _lanes and isinstance(protected.get("lanes"), dict)
                 err(f"{where}: from={c.get('from')!r} but the replayed value is {old!r}")
             if c.get("revert_of"):
                 tgt = seen.get(c["revert_of"])
-                if not tgt or tgt.get("field") != field or tgt.get("scope") != scope \
-                        or tgt.get("from") != to:
+                if not tgt or tgt.get("revert_of") or tgt.get("field") != field \
+                        or tgt.get("scope") != scope or tgt.get("from") != to:
                     err(f"{where}: revert does not restore change {c['revert_of']}")
             else:
                 if isinstance(to, (int, float)) and isinstance(old, (int, float)) \

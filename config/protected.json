@@ -33,7 +33,7 @@
     "no_benchmark_stake_cap_usd": 1.0,
     "no_benchmark_release": {"min_settled_bets": 10, "max_brier_delta": 0.0},
     "benchmark_leagues": ["nfl", "cfb", "nba", "cbb", "wnba", "mlb", "kbo", "npb", "nhl", "mls", "epl", "lal", "bun", "sea", "lg1", "ucl", "uel", "uecl", "eflch", "lmx", "bra", "ufc", "boxing", "atp", "wta"],
-    "tier_unlock": {"_comment": "A league may bet tier 2 or 3 markets only after that league+tier has this many settled forecasts with forecast brier_delta <= max_brier_delta (agent no worse than the market mid).", "min_settled_forecasts": 20, "max_brier_delta": 0.0},
+    "tier_unlock": {"_comment": "A league may bet tier 2 or 3 markets only after that league+tier has this many settled forecasts with forecast brier_delta strictly below max_brier_delta (agent better than the market mid).", "min_settled_forecasts": 20, "max_brier_delta": 0.0},
     "phases": {
       "paper": {
         "bounds": {"min_edge": [0.01, 0.15], "max_spread": [0.02, 0.08], "stake_usd": [1.0, 10.0], "max_bets_per_cycle": [1, 10], "min_price": [0.05, 0.5], "max_price": [0.5, 0.95], "max_bet_tier": [1, 3]},

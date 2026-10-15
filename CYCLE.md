@@ -121,8 +121,8 @@ procedure exactly once, then stop. Work from this directory.
       whose follow-up window scored worse than the window before it. Revert
       it unless you can name evidence that the window was unrepresentative:
       `python3 core/params.py set --lane <lane> --revert <change id> --reason "..."`
-   2. **Then changes**, only where the league (or `_lane` for the lane
-      defaults) shows `can_change: true` and the lane has
+   2. **Then changes**, only where the league shows `can_change: true` (for
+      the lane defaults: `lane_defaults_can_change: true`) and the lane has
       `changes_left_today` > 0:
       `python3 core/params.py set --lane <lane> --scope <league|_lane> \
         --field <min_edge|max_spread|stake_usd|max_bets_per_cycle|min_price|max_price|max_bet_tier> \
@@ -199,7 +199,8 @@ procedure exactly once, then stop. Work from this directory.
    **Test bets** (paper phase only): when a candidate's edge sits just
    under the league's min_edge (within 0.02) and your forecast record says
    the threshold may be too tight, add `--test-bet`. Core allows at most 1
-   in 5 of a lane's bets to be test bets, and lanestats scores them, so the
+   in 5 of a lane's bets to be test bets, and lanestats scores them
+   separately (`test_bets`: test vs regular, per lane and league), so the
    tuning step can tell whether min_edge is costing good bets.
    Rejections are protected rules, not errors to fix.
 7. **Log**: append one line to `journal/cycles.log`:

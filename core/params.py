@@ -91,6 +91,9 @@ def cmd_set(args):
         target = next((c for c in params.get("changes") or [] if c.get("id") == args.revert), None)
         if target is None:
             sys.exit(f"REJECTED: no change {args.revert!r} in {lane}")
+        if target.get("revert_of"):
+            sys.exit("REJECTED: that change is itself a revert; re-applying a value is a "
+                     "normal change and needs the evidence and step rules")
         if any(c.get("revert_of") == args.revert for c in params["changes"]):
             sys.exit(f"REJECTED: change {args.revert} was already reverted")
         scope, field, value = target["scope"], target["field"], target["from"]
@@ -111,7 +114,16 @@ def cmd_set(args):
             sys.exit(f"REJECTED: league {scope!r} is not in lane {lane!r}")
         if not args.expect:
             sys.exit("REJECTED: --expect is required (the result this change should produce)")
-        value = int(args.value) if field in INT_FIELDS else round(float(args.value), 4)
+        try:
+            fv = float(args.value)
+        except ValueError:
+            sys.exit(f"REJECTED: --value {args.value!r} is not a number")
+        if field in INT_FIELDS:
+            if fv != int(fv):
+                sys.exit(f"REJECTED: {field} must be a whole number")
+            value = int(fv)
+        else:
+            value = round(fv, 4)
         check_value(cfg, field, value)
         old = current_value(params, scope, field)
         if old is None:

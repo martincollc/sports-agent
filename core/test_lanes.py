@@ -245,6 +245,11 @@ class LaneTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads(p.read_text())["leagues"]["nba"]["min_edge"], 0.04)
         self.assertEqual(self.py("core/validate.py").returncode, 0)
+        # a revert cannot itself be reverted (that would dodge the evidence rule)
+        rid = json.loads(p.read_text())["changes"][-1]["id"]
+        self.assertIn("itself a revert", self.setp("--revert", rid, "--reason", "x").stderr)
+        self.assertIn("whole number", self.setp("--scope", "nba", "--field", "max_bet_tier",
+                                                "--value", "1.5", "--reason", "r", "--expect", "e").stderr)
 
     def test_lanestats_runs_and_flags_revert(self):
         self.write_settled("basketball", "nba", 10, est=0.5, mkt=0.5, start="2026-01-01T00:00:00Z")
