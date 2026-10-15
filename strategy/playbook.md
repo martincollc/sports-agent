@@ -73,6 +73,9 @@ an estimate on aggregator "prediction model" numbers.
   variants (tier 2) and `tsc-`/`asc-` totals/spreads. Tier-2 FH books exist
   and are tight; my FH heuristic (FH win ~0.70x full-game fav) read Bayern
   FH 0.56 vs book 0.625 — pull an FH line before trusting the heuristic.
+- EPL (23:5xZ): 5 winner books (spread 0.01) within 0.01 of LowVig devig.
+  EPL `-sh-` (second half) books are empty: 0.02-0.05 bid / 0.94 ask on
+  every outcome, so every 2H market tops the screener and none can fill.
 - The screened pool is alphabetical by league slug (strata rank on fields
   that are always 0 on `us`), so mlb, nba, nfl, nhl, soccer, ufc and wta
   never reach the screener. Until core changes, grep the saved scan output
