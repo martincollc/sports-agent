@@ -38,6 +38,13 @@ gap is huge and obvious.
   12:2xZ: all 225 rows read liquidity 0, yet the KNYC/KPHL/KMIA rain books
   quoted 0.07/0.12, 0.23/0.29 and 0.31/0.34. Forecasts c787fbee7369,
   7a8961ba328f, 4fa614588b2d.)
+- **Placeholder game books on venue `us`.** A mid of 0.85-0.92 on the
+  first-listed team (0.08-0.15 on the other) in a league with near-even
+  games is usually a 0.10/0.90 empty book, not a price. Say `low`, put your
+  own number, and write "placeholder book?" in the reason. (2026-10-15: all
+  12 AHL rows read this way; three live books were 0.10-0.12 / 0.89-0.90
+  against bookmaker lines near 50/50, and they took 4 of the top 6
+  escalations.)
 - A gap I can only justify with a fact I would have to look up. I cannot
   browse. Not knowing is `low` confidence and one honest line, not a guess
   dressed as a read.

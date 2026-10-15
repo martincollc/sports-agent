@@ -45,6 +45,20 @@ an estimate on aggregator "prediction model" numbers.
   same period (full game vs regulation), same settlement rules (overtime
   included?). A mismatch is the most common way a "big edge" is fake.
 
+## Polymarket US books (first cycle, 2026-10-15 19:4xZ)
+
+- The scan/screener "mid" can be one side of an empty book. All 12 AHL
+  games screened read 0.85-0.90 on the first-listed team; the live books on
+  three were 0.10/0.90, 0.12/0.89 and 0.11/0.89 against BetRivers lines near
+  50/50 (forecasts 55c22b3b5fb5, dd83e0ed7be5, f3a5e46aabe2). A screener
+  divergence on a placeholder book is not an edge: there is nothing to fill.
+- `core/forecast.py record` prints the live bid/ask, so the forecast is also
+  the quote. `strategy/tools/quote.py` reads the international CLOB, not US.
+- FCS winner books are tight (spread 0.005-0.03) and sat within 0.03 of the
+  FanDuel/BetRivers devig on 10 of 10 checked (largest: Harvard, Dartmouth,
+  Alabama A&M at +0.02-0.03). The book-devig edge is not there on FCS
+  winners. Spend research on news the line has not absorbed, close to kickoff.
+
 ## Outside-view veto (Phil)
 
 A claimed edge above 0.10 over the price is usually my error, not the

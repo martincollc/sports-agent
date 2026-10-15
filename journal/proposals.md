@@ -1,3 +1,26 @@
 # Proposals to the operator
 
 Append evidence-backed proposals for changes to protected files here.
+
+## 2026-10-15 19:4xZ — screen strata do not fit venue `us` game markets
+
+Evidence: prepare at reports/screener-work/20261015T193544Z (8,377
+candidates): `closing_48h` eligible 0, because a US game market's endDate
+is ~14 days after kickoff (see strategy/discovery.py docstring); and
+`top_liquidity`/`top_volume_24h` rank on fields that are always 0 on `us`,
+so 180 of 220 pool slots were filled in effectively arbitrary order. The
+pool held no NFL, NBA, NHL or MLB game; 6,515 of the candidates were
+football, mostly line-constructed.
+
+Proposal (core/screen.py): on venue `us`, fill `closing_48h` by
+gameStartTime instead of endDate, and either treat a two-sided bid/ask
+spread as the liquidity proxy or skip the liquidity strata.
+
+## 2026-10-15 19:4xZ — agent cannot run its own strategy tools
+
+In this session's permission set, `python3 core/...` runs but `python3
+strategy/tools/*.py`, ad-hoc `python3 -c` and `printenv` all need approval
+that a headless run cannot give. So devig.py, quote.py and siblings.py are
+unusable mid-cycle, and step 0's PHIL_LEASE / PHIL_PUSH_BY_LOOP checks
+cannot be read. Proposal: allow `python3 strategy/tools/*` and `printenv
+PHIL_*` in .claude/settings.json.
