@@ -63,6 +63,15 @@ an estimate on aggregator "prediction model" numbers.
   PM US h2h on leagues with deep outside books is a book mirror; one odds
   call per league is enough to confirm it, then spend the slot elsewhere
   (pre-lineup news, tier-2 forecasts, leagues the books price thinly).
+- Same again on ATP Shanghai (3), WTA Wuhan (4), MLB LCS (2) and NBA
+  preseason (2) at 21:2xZ: all 11 PM US mids within 0.01 of a 7-9 book
+  devig, spreads 0.005-0.01. Four more lanes confirm the mirror; the
+  remaining edge is timing (news before the books move), not price.
+- The screened pool is alphabetical by league slug (strata rank on fields
+  that are always 0 on `us`), so mlb, nba, nfl, nhl, soccer, ufc and wta
+  never reach the screener. Until core changes, grep the saved scan output
+  (`python3 core/scan.py ... > /tmp/scan.json`; ~9 MB, never commit it)
+  for those leagues and research them directly.
 
 ## Outside-view veto (Phil)
 
