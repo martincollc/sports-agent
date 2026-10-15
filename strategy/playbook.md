@@ -67,6 +67,12 @@ an estimate on aggregator "prediction model" numbers.
   preseason (2) at 21:2xZ: all 11 PM US mids within 0.01 of a 7-9 book
   devig, spreads 0.005-0.01. Four more lanes confirm the mirror; the
   remaining edge is timing (news before the books move), not price.
+- Soccer too (23:0xZ): 5 Bundesliga 3-way books (spread 0.01) within 0.01 of
+  the LowVig power devig. Soccer markets are one Yes/No market per outcome
+  (`atc-<lg>-<home>-<away>-<date>-<team|draw>`), with `-fh-`/`-sh-` half
+  variants (tier 2) and `tsc-`/`asc-` totals/spreads. Tier-2 FH books exist
+  and are tight; my FH heuristic (FH win ~0.70x full-game fav) read Bayern
+  FH 0.56 vs book 0.625 — pull an FH line before trusting the heuristic.
 - The screened pool is alphabetical by league slug (strata rank on fields
   that are always 0 on `us`), so mlb, nba, nfl, nhl, soccer, ufc and wta
   never reach the screener. Until core changes, grep the saved scan output
