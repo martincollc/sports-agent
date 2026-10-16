@@ -76,6 +76,10 @@ an estimate on aggregator "prediction model" numbers.
 - EPL (23:5xZ): 5 winner books (spread 0.01) within 0.01 of LowVig devig.
   EPL `-sh-` (second half) books are empty: 0.02-0.05 bid / 0.94 ask on
   every outcome, so every 2H market tops the screener and none can fill.
+- Cycle 00:4xZ 10-16: NDSU (now FBS/MWC) vs Nevada book 0.855/0.86 vs
+  FD/DK/BOL devig ~0.864 — mirror again. BSL (Bandirma–Turk Telekom 0.10/0.90)
+  and ACB (Burgos–Obradoiro 0.34/0.82) books are empty, and neither league
+  has an odds-API key or a findable web line: forecast-only, skip research.
 - The screened pool is alphabetical by league slug (strata rank on fields
   that are always 0 on `us`), so mlb, nba, nfl, nhl, soccer, ufc and wta
   never reach the screener. Until core changes, grep the saved scan output
