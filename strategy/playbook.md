@@ -87,6 +87,11 @@ an estimate on aggregator "prediction model" numbers.
   Dubois-Wardley) books all within 0.02 of a 4-9 book power devig, spreads
   0.01 (boxing Jalolov 0.06). Ten leagues now confirm the mirror. KBO and CBA
   have no odds-API key. NPB ties settle at 0.50.
+- Cycle 02:3xZ 10-16: Liiga (6 games, DK+BR only) scan prices looked
+  0.02-0.05 home-shaded vs devig on all six; the live books at record time
+  were mids within 0.015 of devig, spreads 0.03-0.06. Scan `outcome_prices`
+  are stale/one-sided: never call a gap until the live mid (forecast record
+  output) confirms it. Eleven leagues now mirror.
 - The screened pool is alphabetical by league slug (strata rank on fields
   that are always 0 on `us`), so mlb, nba, nfl, nhl, soccer, ufc and wta
   never reach the screener. Until core changes, grep the saved scan output
