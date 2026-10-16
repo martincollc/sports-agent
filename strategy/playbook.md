@@ -80,6 +80,10 @@ an estimate on aggregator "prediction model" numbers.
   FD/DK/BOL devig ~0.864 — mirror again. BSL (Bandirma–Turk Telekom 0.10/0.90)
   and ACB (Burgos–Obradoiro 0.34/0.82) books are empty, and neither league
   has an odds-API key or a findable web line: forecast-only, skip research.
+- Cycle 01:3xZ 10-16: NPB Climax (2), WNBA Finals (1) and boxing (Jalolov,
+  Dubois-Wardley) books all within 0.02 of a 4-9 book power devig, spreads
+  0.01 (boxing Jalolov 0.06). Ten leagues now confirm the mirror. KBO and CBA
+  have no odds-API key. NPB ties settle at 0.50.
 - The screened pool is alphabetical by league slug (strata rank on fields
   that are always 0 on `us`), so mlb, nba, nfl, nhl, soccer, ufc and wta
   never reach the screener. Until core changes, grep the saved scan output
