@@ -41,6 +41,9 @@ an estimate on aggregator "prediction model" numbers.
 - Phil's finding: clean bookmaker lines priced within ~0.02 of Polymarket on
   ~40 markets. A devig gap alone is rarely an edge. Use the line as the
   sanity benchmark; look for the news it has not absorbed yet.
+- No fact the book has missed -> record the devig itself, not a 0.01 lean.
+  First settlements (2026-10-16): five NHL leans of +0.01 off the devig
+  scored +0.004 Brier worse than the market; a lean with no fact is noise.
 - Match the market exactly: same game, same date, same line (−3.5 vs −3),
   same period (full game vs regulation), same settlement rules (overtime
   included?). A mismatch is the most common way a "big edge" is fake.
